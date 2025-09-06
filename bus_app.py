@@ -1,64 +1,35 @@
 # bus_app.py
-# Simple Bus Booking Application
+from flask import Flask, request, jsonify
 
-class Bus:
-    def __init__(self, bus_id, route, seats=40):
-        self.bus_id = bus_id
-        self.route = route
-        self.seats = seats
-        self.booked = []
+app = Flask(__name__)
 
-    def available_seats(self):
-        return self.seats - len(self.booked)
+# Simple in-memory bus data
+buses = {
+    1: {"route": "City A → City B", "seats": 40, "booked": []},
+    2: {"route": "City B → City C", "seats": 40, "booked": []},
+    3: {"route": "City A → City C", "seats": 40, "booked": []},
+}
 
-    def book_seat(self, passenger_name):
-        if self.available_seats() > 0:
-            self.booked.append(passenger_name)
-            print(f"✅ Seat booked for {passenger_name} on Bus {self.bus_id}.")
-        else:
-            print("❌ No seats available!")
+@app.route("/")
+def home():
+    return "🚌 Welcome to Bus Booking API!"
 
-    def display_info(self):
-        print(f"\n🚌 Bus {self.bus_id}")
-        print(f"Route: {self.route}")
-        print(f"Total Seats: {self.seats}")
-        print(f"Booked: {len(self.booked)}")
-        print(f"Available: {self.available_seats()}")
+@app.route("/buses", methods=["GET"])
+def list_buses():
+    return jsonify(buses)
 
+@app.route("/book/<int:bus_id>", methods=["POST"])
+def book_seat(bus_id):
+    passenger = request.json.get("name")
+    bus = buses.get(bus_id)
+    if not bus:
+        return jsonify({"error": "Invalid Bus ID"}), 404
 
-# Sample Data
-buses = [
-    Bus(bus_id=1, route="City A → City B"),
-    Bus(bus_id=2, route="City B → City C"),
-    Bus(bus_id=3, route="City A → City C")
-]
-
-def main():
-    while True:
-        print("\n=== Bus Booking System ===")
-        print("1. Show Buses")
-        print("2. Book Seat")
-        print("3. Exit")
-
-        choice = input("Enter your choice: ")
-
-        if choice == "1":
-            for bus in buses:
-                bus.display_info()
-        elif choice == "2":
-            bus_id = int(input("Enter Bus ID: "))
-            name = input("Enter Passenger Name: ")
-            for bus in buses:
-                if bus.bus_id == bus_id:
-                    bus.book_seat(name)
-                    break
-            else:
-                print("❌ Invalid Bus ID.")
-        elif choice == "3":
-            print("👋 Thank you for using the Bus Booking System!")
-            break
-        else:
-            print("❌ Invalid choice, try again.")
+    if len(bus["booked"]) < bus["seats"]:
+        bus["booked"].append(passenger)
+        return jsonify({"message": f"Seat booked for {passenger} on Bus {bus_id}"})
+    else:
+        return jsonify({"error": "No seats available"}), 400
 
 if __name__ == "__main__":
-    main()
+    app.run(host="0.0.0.0", port=8080)
